@@ -1,0 +1,12 @@
+<component name="libraryTable">
+  <library name="uk.co.pacmanvghosts:pacman-main:1.0.3.3" type="repository">
+    <properties maven-id="uk.co.pacmanvghosts:pacman-main:1.0.3.3" />
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/lib/pacman-main-1.0.3.3.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="jar://$PROJECT_DIR$/lib/pacman-main-1.0.3.3-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>
