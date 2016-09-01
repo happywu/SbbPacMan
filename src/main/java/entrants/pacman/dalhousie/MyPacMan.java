@@ -34,6 +34,7 @@ public class MyPacMan extends PacmanController {
     private static boolean[] stateVarIsBool = new boolean[NUM_SENSOR_INPUTS];
     private static final int MIN_DISTANCE = 20;
     private static boolean firstflag = true;
+    private static Sensors sensor = new Sensors();
 
     private static sbbHP sbbMain = new sbbHP();
     static PrintWriter writer;
@@ -136,115 +137,115 @@ public class MyPacMan extends PacmanController {
 
     public static int runEval(Game game, sbbHP sbbEval, int port, int t, int phase, boolean visual, int[] timeGenTotalInGame, int hostToReplay, long[] eval) {
 
-            Random random = new Random();
-            long timeStartGame;
-            Vector<Double> behaviourSequence = new Vector<Double>(); // store a discretized trajectory for diversity maintenance
-            Vector<Double> tmpBehaviourSequence = new Vector<Double>();
-            Vector<Double> directedState = new Vector<Double>();
-            Vector<Double> selectedDirectedState = new Vector<Double>();
-            int step;
-            int prevAction;
-            int atomicAction;
-            long[] decisionInstructions = new long[1];
-            long decisionInstructionsSum;
-            int prevProfileId = -1;
-            int newProfilePoints = 0;
-            TreeMap<Integer, Integer> directedActions = new TreeMap<Integer, Integer>(Collections.reverseOrder());
-            TreeMap<Double, Integer> acceptedDirectionPreferences = new TreeMap<Double, Integer>(Collections.reverseOrder());
-            TreeMap<Double, Integer> rejectedDirectionPreferences = new TreeMap<Double, Integer>(Collections.reverseOrder());
-            TreeSet<sbbLearner> learnersRanked = new TreeSet<sbbLearner>(new sbbLearner.LearnerBidLexicalCompare());
+        Random random = new Random();
+        long timeStartGame;
+        Vector<Double> behaviourSequence = new Vector<Double>(); // store a discretized trajectory for diversity maintenance
+        Vector<Double> tmpBehaviourSequence = new Vector<Double>();
+        Vector<Double> directedState = new Vector<Double>();
+        Vector<Double> selectedDirectedState = new Vector<Double>();
+        int step;
+        int prevAction;
+        int atomicAction;
+        long[] decisionInstructions = new long[1];
+        long decisionInstructionsSum;
+        int prevProfileId = -1;
+        int newProfilePoints = 0;
+        TreeMap<Integer, Integer> directedActions = new TreeMap<Integer, Integer>(Collections.reverseOrder());
+        TreeMap<Double, Integer> acceptedDirectionPreferences = new TreeMap<Double, Integer>(Collections.reverseOrder());
+        TreeMap<Double, Integer> rejectedDirectionPreferences = new TreeMap<Double, Integer>(Collections.reverseOrder());
+        TreeSet<sbbLearner> learnersRanked = new TreeSet<sbbLearner>(new sbbLearner.LearnerBidLexicalCompare());
 
-            Vector<sbbTeam> teams = new Vector<sbbTeam>();
-            sbbEval.getTeams(teams);
-            Vector<sbbPoint> points = new Vector<sbbPoint>();
-            sbbEval.getPoints(points);
+        Vector<sbbTeam> teams = new Vector<sbbTeam>();
+        sbbEval.getTeams(teams);
+        Vector<sbbPoint> points = new Vector<sbbPoint>();
+        sbbEval.getPoints(points);
 
         int diffcnt = 0;
 
-            //System.out.println(teams.size());
-            int prevF = 0;
-            for (int i = 0; i < teams.size(); i++) {
-                int numEval = visual ? NUM_TEST_GAMES : (sbbEval.usePoints() ? points.size() : (hostToReplay >= 0 ? NUM_TEST_GAMES : sbbEval.episodesPerGeneration()));
-                if (hostToReplay < 0 || (hostToReplay >= 0 && teams.get(i).id() == hostToReplay)) {
-                    for (int p = 0; p < numEval; p++) {
-                        decisionInstructionsSum = 0;
-                        if ((sbbEval.usePoints() && !teams.get(i).hasOutcome(points.get(p))) || (!sbbEval.usePoints() && teams.get(i).numOutcomes(phase) < sbbEval.numStoredOutcomesPerHost(phase))) {
-                            if (sbbEval.usePoints()) {
-                                if (false) {
-                                } else {
-                                    Vector<Double> pState = new Vector<Double>();
-                                    points.get(p).pointState(pState);
-                                }
+        //System.out.println(teams.size());
+        int prevF = 0;
+        for (int i = 0; i < teams.size(); i++) {
+            int numEval = visual ? NUM_TEST_GAMES : (sbbEval.usePoints() ? points.size() : (hostToReplay >= 0 ? NUM_TEST_GAMES : sbbEval.episodesPerGeneration()));
+            if (hostToReplay < 0 || (hostToReplay >= 0 && teams.get(i).id() == hostToReplay)) {
+                for (int p = 0; p < numEval; p++) {
+                    decisionInstructionsSum = 0;
+                    if ((sbbEval.usePoints() && !teams.get(i).hasOutcome(points.get(p))) || (!sbbEval.usePoints() && teams.get(i).numOutcomes(phase) < sbbEval.numStoredOutcomesPerHost(phase))) {
+                        if (sbbEval.usePoints()) {
+                            if (false) {
+                            } else {
+                                Vector<Double> pState = new Vector<Double>();
+                                points.get(p).pointState(pState);
                             }
-
-                            prevAction = 0;
-                            step = 0;
-                            timeStartGame = System.currentTimeMillis();
-                            int ccnt = 0;
-                            while (!episodeEnd) {
-                                acceptedDirectionPreferences.clear();
-                                rejectedDirectionPreferences.clear();
-                                double[] BB = new double[4];
-                                for (int d = 0; d < NUM_DIR; d++) { //0:UP 1:RIGHT 2:DOWN 3:LEFT
-                                    if (!isTowardWall(neighbours, d)) {
-                                        getDirectedState(currentState, directedState, d);
-                                        learnersRanked.clear();
-                                        decisionInstructions[0] = 0;
-                                        atomicAction = sbbEval.getAction(teams.get(i), directedState, (phase == sbbMist._TRAIN_PHASE ? true : false), learnersRanked, decisionInstructions);
-                                        if (atomicAction == ATOMIC_ACCEPT) {
-                                            if (!acceptedDirectionPreferences.containsKey(learnersRanked.first().bidVal()))
-                                                acceptedDirectionPreferences.put(learnersRanked.first().bidVal(), d);
-                                        } else {
-                                            if (!rejectedDirectionPreferences.containsKey(learnersRanked.first().bidVal()))
-                                                rejectedDirectionPreferences.put(learnersRanked.first().bidVal(), d);
-                                        }
-                                        //   System.out.println( "atomic Action: " + atomicAction + "dir: "+ d + " learnersRanked: "+ (learnersRanked.first()).bidVal());
-                                        if (random.nextDouble() < P_ADD_PROFILE_POINT && teams.get(i).id() != prevProfileId) {
-                                            sbbEval.addProfilePoint(directedState, rewards, phase, t);
-                                            prevProfileId = (int) teams.get(i).id();
-                                            newProfilePoints++;
-                                        }
-                                        BB[d] = learnersRanked.first().bidVal();
-                                    }
-                                }
-                                //System.out.println(acceptedDirectionPreferences.size() + " : " + rejectedDirectionPreferences.size());
-                                if (acceptedDirectionPreferences.size() > 0)
-                                    currentAction = acceptedDirectionPreferences.firstEntry().getValue();
-                                else
-                                    if(rejectedDirectionPreferences.size()>0)
-                                        currentAction = rejectedDirectionPreferences.lastEntry().getValue();
-
-
-                                behaviourSequence.add((double) ((currentAction * -1) - 1)); //actions are represented as negatives
-                                getDirectedState(currentState, selectedDirectedState, currentAction);//sensor readings for the chosen direction
-                                mspacmanDiscretizeState(selectedDirectedState, sbbEval.stateDiscretizationSteps());//only need the last 5!
-
-                                for (int ii = 0; ii < selectedDirectedState.size(); ii++)
-                                    behaviourSequence.add(selectedDirectedState.get(ii));
-
-                                step++;
-                                decisionInstructionsSum += decisionInstructions[0];
-                                prevAction = currentAction;
-                                return currentAction;
-                            }
-                            timeGenTotalInGame[0] += (System.currentTimeMillis() - timeStartGame);
-                            episodeEnd = false;
-                            //get behaviour sequence for last 5 interactions
-                            int start = Math.min((1 + sbbEval.dimBehavioural()) * MAX_BEHAVIOUR_STEPS, (int) behaviourSequence.size());
-                            for (int b = behaviourSequence.size() - start; b < behaviourSequence.size(); b++)
-                                tmpBehaviourSequence.add(behaviourSequence.get(b));
-
-                            if (sbbEval.usePoints())
-                                sbbEval.setOutcome(teams.get(i), points.get(p), tmpBehaviourSequence, rewards, phase, t);
-                            else sbbEval.setOutcome(teams.get(i), tmpBehaviourSequence, rewards, phase, t);
-                            eval[0]++;
-                            behaviourSequence.clear();
-                            tmpBehaviourSequence.clear();
-                            System.out.println(" gameScore " + rewards.get(0) + " pillScore " + rewards.get(1) + " ghostScore " + rewards.get(2) + " steps " + step + " meanDecisionInst " + decisionInstructionsSum / step);
                         }
+
+                        prevAction = 0;
+                        step = 0;
+                        timeStartGame = System.currentTimeMillis();
+                        int ccnt = 0;
+                        while (!episodeEnd) {
+                            acceptedDirectionPreferences.clear();
+                            rejectedDirectionPreferences.clear();
+                            double[] BB = new double[4];
+                            for (int d = 0; d < NUM_DIR; d++) { //0:UP 1:RIGHT 2:DOWN 3:LEFT
+                                if (!isTowardWall(neighbours, d)) {
+                                    getDirectedState(currentState, directedState, d);
+                                    learnersRanked.clear();
+                                    decisionInstructions[0] = 0;
+                                    atomicAction = sbbEval.getAction(teams.get(i), directedState, (phase == sbbMist._TRAIN_PHASE ? true : false), learnersRanked, decisionInstructions);
+                                    if (atomicAction == ATOMIC_ACCEPT) {
+                                        if (!acceptedDirectionPreferences.containsKey(learnersRanked.first().bidVal()))
+                                            acceptedDirectionPreferences.put(learnersRanked.first().bidVal(), d);
+                                    } else {
+                                        if (!rejectedDirectionPreferences.containsKey(learnersRanked.first().bidVal()))
+                                            rejectedDirectionPreferences.put(learnersRanked.first().bidVal(), d);
+                                    }
+                                    //   System.out.println( "atomic Action: " + atomicAction + "dir: "+ d + " learnersRanked: "+ (learnersRanked.first()).bidVal());
+                                    if (random.nextDouble() < P_ADD_PROFILE_POINT && teams.get(i).id() != prevProfileId) {
+                                        sbbEval.addProfilePoint(directedState, rewards, phase, t);
+                                        prevProfileId = (int) teams.get(i).id();
+                                        newProfilePoints++;
+                                    }
+                                    BB[d] = learnersRanked.first().bidVal();
+                                }
+                            }
+                            //System.out.println(acceptedDirectionPreferences.size() + " : " + rejectedDirectionPreferences.size());
+                            if (acceptedDirectionPreferences.size() > 0)
+                                currentAction = acceptedDirectionPreferences.firstEntry().getValue();
+                            else
+                            if(rejectedDirectionPreferences.size()>0)
+                                currentAction = rejectedDirectionPreferences.lastEntry().getValue();
+
+
+                            behaviourSequence.add((double) ((currentAction * -1) - 1)); //actions are represented as negatives
+                            getDirectedState(currentState, selectedDirectedState, currentAction);//sensor readings for the chosen direction
+                            mspacmanDiscretizeState(selectedDirectedState, sbbEval.stateDiscretizationSteps());//only need the last 5!
+
+                            for (int ii = 0; ii < selectedDirectedState.size(); ii++)
+                                behaviourSequence.add(selectedDirectedState.get(ii));
+
+                            step++;
+                            decisionInstructionsSum += decisionInstructions[0];
+                            prevAction = currentAction;
+                            return currentAction;
+                        }
+                        timeGenTotalInGame[0] += (System.currentTimeMillis() - timeStartGame);
+                        episodeEnd = false;
+                        //get behaviour sequence for last 5 interactions
+                        int start = Math.min((1 + sbbEval.dimBehavioural()) * MAX_BEHAVIOUR_STEPS, (int) behaviourSequence.size());
+                        for (int b = behaviourSequence.size() - start; b < behaviourSequence.size(); b++)
+                            tmpBehaviourSequence.add(behaviourSequence.get(b));
+
+                        if (sbbEval.usePoints())
+                            sbbEval.setOutcome(teams.get(i), points.get(p), tmpBehaviourSequence, rewards, phase, t);
+                        else sbbEval.setOutcome(teams.get(i), tmpBehaviourSequence, rewards, phase, t);
+                        eval[0]++;
+                        behaviourSequence.clear();
+                        tmpBehaviourSequence.clear();
+                        System.out.println(" gameScore " + rewards.get(0) + " pillScore " + rewards.get(1) + " ghostScore " + rewards.get(2) + " steps " + step + " meanDecisionInst " + decisionInstructionsSum / step);
                     }
                 }
             }
+        }
         System.out.println(" diffnum: " + diffcnt);
         System.out.print( "mspacmanSBBHAgent::runEval t " + t + " numProfilePoints " + sbbEval.numProfilePoints());
         System.out.println(" newProfilePoints " + newProfilePoints);
@@ -291,6 +292,9 @@ public class MyPacMan extends PacmanController {
     }
 
     public static void init() {
+        rewards.clear();
+        neighbours.clear();
+        currentState.clear();
         for (int i = 0; i < 3; i++) rewards.add(0.0);
         for (int i = 0; i < 4; i++) neighbours.add(-1);
         for (int i = 0; i < NUM_SENSOR_INPUTS; i++)
@@ -299,22 +303,39 @@ public class MyPacMan extends PacmanController {
         checkpointInMode = 0;
         hostFitnessMode = 0;
         statMod = 5;
-       // useMemory = true;
         useMemory = false;
         replay = true;
-       // hostToReplay = 7924827;
-      //  hostToReplay = 7175533;
-       // hostToReplay = 8980520;
-        hostToReplay = 9019146;
+        int Run = 3;
         tMain = 1000;
-        //tStart = 178;
-        //tStart = 516;
-        //tStart = 709;
-        tStart = 736;
+        switch (Run){
+            case 1:
+                //3915
+                hostToReplay = 8980520;
+                tStart = 709;
+                seed = 8900;
+                break;
+            case 2:
+                //
+                hostToReplay = 8546085;
+                tStart = 892;
+                seed = 8400;
+                break;
+            case 3:
+                // 4800
+                hostToReplay = 9019146;
+                tStart = 736;
+                seed = 8900;
+                break;
+            case 4:
+                //full obseravtion 9334
+                hostToReplay = 7175533;
+                tStart = 516;
+                seed = 7100;
+                useMemory = true;
+            default:break;
+        }
         tPickup = tStart;
         visual = true;
-      // seed = 7100;
-        seed = 8900;
     }
 
     public MOVE IntegerToMove(int move){
@@ -331,13 +352,8 @@ public class MyPacMan extends PacmanController {
     @Override
     public MOVE getMove(Game game, long timeDue) {
 
-      //if(game.getCurrentLevelTime()==0)System.out.println("First Time");
-        /*
-        if(firstflag){
-            init();
-        }*/
         if(game.getCurrentLevelTime()==0)init();
-        Sensors sensor = new Sensors();
+        sensor = new Sensors();
         double[] sense = sensor.read(game);
 
         rewards.set(0,(double)game.getScore());
@@ -370,7 +386,6 @@ public class MyPacMan extends PacmanController {
         if(currentState.get(76)<=0.10&&currentState.get(79)==0){
             neighbours.set(3,-1);
         }
-
         int current = game.getPacmanCurrentNodeIndex();
 
         /// Strategy 2: Find nearest edible ghost and go after them
@@ -410,7 +425,7 @@ public class MyPacMan extends PacmanController {
         sbbMain.dimPoint(POINT_DIM);
         sbbMain.dimBehavioural(SBB_DIM);
         sbbMain.hostFitnessMode(hostFitnessMode);
-        //  sbbMain.setParams();
+       //   sbbMain.setParams();
         sbbMain.numAtomicActions(2); //Binary action, yes or no for direction
         sbbMain.numStoredOutcomesPerHost(sbbMist._TRAIN_PHASE, 10);
         init(currentState, neighbours, NUM_SENSOR_INPUTS);

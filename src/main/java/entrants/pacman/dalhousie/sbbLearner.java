@@ -300,8 +300,7 @@ public class sbbLearner {
                 if(mode.equals(_mode0)){/* Rx <- op Rx Ry, need to target Ry. */
 
 
-                tmp = new instruction(prog_now);
-                  //  tmp = (instruction) prog_now.clone();
+                    tmp = new instruction(prog_now);
                     tmp.bits.and((BitSet) _srcMask.bits.clone());
                     tmp.RightShift(_srcShift);
                     if(tmp.bits.length()>0)
@@ -442,7 +441,7 @@ public class sbbLearner {
             }
 
             instruction prog_now = (instruction) iter.next();
-            //System.out.println("sbblearner run: BEGEIN: "+prog_now.toString() + " " + _introns.get(k));
+        //    System.out.println("sbblearner run: BEGEIN: "+prog_now.toString() + " " + _introns.get(k));
             //System.out.println("BEGEIN: "+prog_now.bits.toString());
             mode = new instruction(prog_now);
             //mode = (instruction) prog_now.clone();
@@ -487,7 +486,8 @@ public class sbbLearner {
                 _REG[dstReg] = _REG[dstReg] * srcVal;
             }else if(op.equals(_opDiv)){
                 if(srcVal!=0)
-                    _REG[dstReg] = _REG[dstReg] / srcVal;
+                _REG[dstReg] = _REG[dstReg] / srcVal;
+                else _REG[dstReg] = Double.valueOf(0);
             }else if(op.equals(_opCos)){
                 _REG[dstReg] = cos(srcVal);
             }else if(op.equals(_opLog)){
@@ -505,11 +505,11 @@ public class sbbLearner {
                 _REG[dstReg] = Double.valueOf(0);
             }
 
-      //      System.out.println("sbblearner : run : " + dstReg + " " + srcVal);
+            //System.out.println("sbblearner : run : " + dstReg + " " + srcVal + " " + mode.toString() + " " + tmp.toString() + " " + op.toString() + " " + _REG[0]);
             k++;
         }
 
-        //System.out.println("bidval:" + _REG[0]);
+       // System.out.println("bidval:" + _REG[0]);
        // System.out.println("sbblearner : run: end" + _REG[0]  );
         return _REG[0];
     }
@@ -585,12 +585,12 @@ public class sbbLearner {
     public static class LearnerBidLexicalCompare implements Comparator<sbbLearner>{
         @Override
         public int compare(sbbLearner l1, sbbLearner l2) {
-            if(l1.bidVal() != l2.bidVal()){
-            //if (l1.key() != l2.key()){//(set to huge val or bid), higher is better
+            //if(l1.bidVal() != l2.bidVal()){
+            if (l1.key() != l2.key()){//(set to huge val or bid), higher is better
                 l1.lastCompareFactor(0);
                 l2.lastCompareFactor(0);
-               // return (int) (l2.key() - l1.key());
-                return (int) (l2.bidVal() - l1.bidVal());
+                return (int) (l2.key()*10000 - l1.key()*10000);
+               // return (int) (l2.bidVal() - l1.bidVal());
             } else if (l1.esize() != l2.esize()){ //program size post intron removal, smaller is better (assumes markIntrons is up to date)
                 l1.lastCompareFactor(1);
                 l2.lastCompareFactor(1);
@@ -598,15 +598,15 @@ public class sbbLearner {
             } else if (l1.refs() != l2.refs()){//number of references, less is better
                 l1.lastCompareFactor(2);
                 l2.lastCompareFactor(2);
-                return (int) (l1.refs() - l2.refs());
+                return (int) (l1.refs()- l2.refs());
             } else if (l1.numFeatures() != l2.numFeatures()){ //number of features indexed, less is better
                 l1.lastCompareFactor(3);
                 l2.lastCompareFactor(3);
-                return (int) (l1.numFeatures() - l2.numFeatures());
+                return (int) (l1.numFeatures()- l2.numFeatures());
             } else if (l1.gtime() != l2.gtime()){//age, younger is better
                 l1.lastCompareFactor(4);
                 l2.lastCompareFactor(4);
-                return (int) (l2.gtime() - l1.gtime());
+                return (int) (l2.gtime()- l1.gtime());
             } else if (l1.ancestralGtime() != l2.ancestralGtime()){ //age of oldest ancestor, younger is better
                 l1.lastCompareFactor(5);
                 l2.lastCompareFactor(5);
@@ -614,7 +614,7 @@ public class sbbLearner {
             } else {//correlated to age but technically arbirary, id is guaranteed to be unique and thus ensures deterministic comparison
                 l1.lastCompareFactor(6);
                 l2.lastCompareFactor(6);
-                return (int) (l1.id() - l2.id());
+                return (int) (l1.id()- l2.id());
             }
         }
     };

@@ -1,0 +1,9 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="starter:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/starter_jar</output-path>
+    <root id="archive" name="starter.jar">
+      <element id="module-output" name="starter" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/lib/pacman-main-1.0.3.3.jar" path-in-jar="/" />
+    </root>
+  </artifact>
+</component>

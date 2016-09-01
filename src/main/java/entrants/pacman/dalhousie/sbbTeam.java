@@ -1,12 +1,15 @@
 package entrants.pacman.dalhousie;
 
+import entrants.pacman.dalhousie.sbbPoint;
+import sun.reflect.generics.tree.Tree;
+
 import java.util.*;
 
 /**
  * Created by happywu on 17/08/16.
  */
 public class sbbTeam {
-    private TreeSet<sbbLearner> _active = new TreeSet<sbbLearner>(new sbbLearner.LearnerBidLexicalCompare()); /* Active member learners, a subset of _members, activated in getAction(). */
+    private TreeSet< sbbLearner > _active = new TreeSet<sbbLearner>(new sbbLearner.LearnerBidLexicalCompare()); /* Active member learners, a subset of _members, activated in getAction(). */
     private Vector<Long> _ancestors = new Vector<Long>(); /* lineage */
     private boolean _archived;
     private static long _count; /* Next id to use. */
@@ -274,7 +277,6 @@ public class sbbTeam {
             decisionInstructions[0] += learner_now.esize();
         }
         for(sbbLearner learner : _members){
-           // System.out.println(" straing"  + learner.bidVal());
             learnersRanked.add(new sbbLearner(learner));
         }
 
@@ -289,6 +291,13 @@ public class sbbTeam {
             for(sbbLearner learner:learnersRanked){
                 _active.add(new sbbLearner(learner));
             }
+        }
+
+        tmpiter = learnersRanked.iterator();
+
+        while(tmpiter.hasNext()){
+            sbbLearner learner = (sbbLearner) tmpiter.next();
+        //    System.out.println("!!!"  + learner.bidVal());
         }
 
         //Loop through learners highest to lowest bid:
@@ -675,12 +684,12 @@ public class sbbTeam {
             else if (t1.gtime() != t2.gtime()){
                 t1.lastCompareFactor(5);
                 t2.lastCompareFactor(5);
-                return (int) (t1.gtime() - t2.gtime());
+                return (int) (t1.gtime()- t2.gtime());
             } //age, younger is better
             else {
                 t1.lastCompareFactor(6);
                 t2.lastCompareFactor(6);
-                return (int) (t1.id() - t2.id());
+                return (int) (t1.id()- t2.id());
             } //correlated to age but technically arbirary, id is guaranteed to be unique and thus ensures deterministic comparison
         }
     }

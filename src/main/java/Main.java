@@ -13,9 +13,11 @@ public class Main {
 
         Executor executor = new Executor(true, true);
 
-       // Stats[] stats = executor.runExperiment(new MyPacMan(), new POCommGhosts(50),10,"score");
-        executor.runGameTimedSpeedOptimised(new MyPacMan(), new POCommGhosts(50),false,true,"F");
-        //System.out.println(stats[0].getAverage());
-
+        Stats[] stats = executor.runExperiment(new MyPacMan(), new POCommGhosts(50), 50, "score");
+        //for(int i=0;i<5;i++) {
+        //executor.runGameTimedSpeedOptimised(new MyPacMan(), new POCommGhosts(50), false, true, "F");
+       //     executor.runGameTimedSpeedOptimised(new MyPacMan(), new POCommGhosts(50),false, true,"F");
+        //}
+         System.out.println("averg: " + stats[0].getAverage() + "var: " + stats[0].getStandardDeviation());
     }
 }

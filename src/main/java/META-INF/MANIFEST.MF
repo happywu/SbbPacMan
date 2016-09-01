@@ -3,4 +3,5 @@ Archiver-Version: Plexus Archiver
 Built-By: pwillic
 Created-By: Apache Maven
 Build-Jdk: 1.8.0_20
+Main-Class: Main
 
